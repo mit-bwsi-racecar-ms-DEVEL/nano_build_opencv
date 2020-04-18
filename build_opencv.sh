@@ -5,7 +5,7 @@ set -e
 
 # change default constants here:
 readonly PREFIX=/usr/local  # install prefix, (can be ~/.local for a user install)
-readonly DEFAULT_VERSION=4.2.0  # controls the default version (gets reset by the first argument)
+readonly DEFAULT_VERSION=4.3.0  # controls the default version (gets reset by the first argument)
 readonly CPUS=$(nproc)  # controls the number of jobs
 
 # better board detection. if it has 6 or more cpus, it probably has a ton of ram too
@@ -13,7 +13,7 @@ if [[ $CPUS -gt 5 ]]; then
     # something with a ton of ram
     JOBS=$CPUS
 else
-    JOBS=1  # you can set this to 4 if you have a swap file
+    JOBS=4  # you can set this to 4 if you have a swap file
     # otherwise a Nano will choke towards the end of the build
 fi
 
@@ -90,8 +90,6 @@ install_dependencies () {
         libxvidcore-dev \
         libx264-dev \
         pkg-config \
-        python-dev \
-        python-numpy \
         python3-dev \
         python3-numpy \
         python3-matplotlib \
@@ -104,7 +102,7 @@ install_dependencies () {
 configure () {
     local CMAKEFLAGS="
         -D BUILD_EXAMPLES=OFF
-        -D BUILD_opencv_python2=ON
+        -D BUILD_opencv_python2=OFF
         -D BUILD_opencv_python3=ON
         -D CMAKE_INSTALL_PREFIX=${PREFIX}
         -D CMAKE_BUILD_TYPE=RELEASE
@@ -113,13 +111,14 @@ configure () {
         -D CUDA_FAST_MATH=ON
         -D EIGEN_INCLUDE_PATH=/usr/include/eigen3 
         -D ENABLE_NEON=ON
-        -D OPENCV_ENABLE_NONFREE=ON
+        -D OPENCV_ENABLE_NONFREE=OFF
         -D OPENCV_EXTRA_MODULES_PATH=/tmp/build_opencv/opencv_contrib/modules
         -D OPENCV_GENERATE_PKGCONFIG=ON
         -D WITH_CUDA=ON
         -D WITH_CUBLAS=ON
         -D WITH_GSTREAMER=ON
         -D WITH_LIBV4L=ON
+        -D WITH_LIBREALSENSE=ON
         -D WITH_OPENGL=ON"
 
     if [[ "$1" != "test" ]] ; then

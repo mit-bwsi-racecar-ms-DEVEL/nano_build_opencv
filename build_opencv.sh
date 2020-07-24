@@ -5,7 +5,7 @@ set -e
 
 # change default constants here:
 readonly PREFIX=/usr/local  # install prefix, (can be ~/.local for a user install)
-readonly DEFAULT_VERSION=4.3.0  # controls the default version (gets reset by the first argument)
+readonly DEFAULT_VERSION=4.4.0  # controls the default version (gets reset by the first argument)
 readonly CPUS=$(nproc)  # controls the number of jobs
 
 # better board detection. if it has 6 or more cpus, it probably has a ton of ram too
@@ -45,8 +45,8 @@ setup () {
 
 git_source () {
     echo "Getting version '$1' of OpenCV"
-    git clone --branch "$1" https://github.com/opencv/opencv.git
-    git clone --branch "$1" https://github.com/opencv/opencv_contrib.git
+    git clone --depth 1 --branch "$1" https://github.com/opencv/opencv.git
+    git clone --depth 1 --branch "$1" https://github.com/opencv/opencv_contrib.git
 }
 
 install_dependencies () {
@@ -104,18 +104,21 @@ configure () {
         -D BUILD_EXAMPLES=OFF
         -D BUILD_opencv_python2=OFF
         -D BUILD_opencv_python3=ON
-        -D CMAKE_INSTALL_PREFIX=${PREFIX}
         -D CMAKE_BUILD_TYPE=RELEASE
+        -D CMAKE_INSTALL_PREFIX=${PREFIX}
         -D CUDA_ARCH_BIN=5.3,6.2,7.2
         -D CUDA_ARCH_PTX=
         -D CUDA_FAST_MATH=ON
+        -D CUDNN_VERSION='8.0'
         -D EIGEN_INCLUDE_PATH=/usr/include/eigen3 
         -D ENABLE_NEON=ON
+        -D OPENCV_DNN_CUDA=ON
         -D OPENCV_ENABLE_NONFREE=OFF
         -D OPENCV_EXTRA_MODULES_PATH=/tmp/build_opencv/opencv_contrib/modules
         -D OPENCV_GENERATE_PKGCONFIG=ON
-        -D WITH_CUDA=ON
         -D WITH_CUBLAS=ON
+        -D WITH_CUDA=ON
+        -D WITH_CUDNN=ON
         -D WITH_GSTREAMER=ON
         -D WITH_LIBV4L=ON
         -D WITH_LIBREALSENSE=ON
@@ -133,7 +136,7 @@ configure () {
     cd opencv
     mkdir build
     cd build
-    cmake ${CMAKEFLAGS} ..
+    cmake ${CMAKEFLAGS} .. 2>&1 | tee -a configure.log
 }
 
 main () {
@@ -145,7 +148,7 @@ main () {
         VER="$1"  # override the version
     fi
 
-    if [[ "$#" -gt 1 ]] && [[ "$2" -eq "test" ]] ; then
+    if [[ "$#" -gt 1 ]] && [[ "$2" == "test" ]] ; then
         DO_TEST=1
     fi
 
@@ -161,17 +164,17 @@ main () {
     fi
 
     # start the build
-    make -j${JOBS}
+    make -j${JOBS} 2>&1 | tee -a build.log
 
     if [[ ${DO_TEST} ]] ; then
-        make test  # (make and) run the tests
+        make test 2>&1 | tee -a test.log
     fi
 
     # avoid a sudo make install (and root owned files in ~) if $PREFIX is writable
     if [[ -w ${PREFIX} ]] ; then
-        make install
+        make install 2>&1 | tee -a install.log
     else
-        sudo make install
+        sudo make install 2>&1 | tee -a install.log
     fi
 
     cleanup --test-warning
